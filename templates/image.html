@@ -1,0 +1,262 @@
+{% extends 'common.html' %}
+{% block body %}
+
+<style>
+  .loading-spinner {
+      display: none;
+      color: aquamarine;
+    }
+</style>
+
+<script>
+     window.onload = function() {
+  
+
+      var alertMessage = "{{ al_m}}";
+      if (alertMessage) {
+        var alertDiv = document.createElement("div");
+        alertDiv.classList.add("alert");
+        alertDiv.innerHTML = alertMessage;
+        document.body.insertBefore(alertDiv, document.body.firstChild);
+      }
+    };
+  </script>
+  <div class="container-fluid">
+   
+  <div class="row mt-3">
+    <div class="col-md-6">
+      <div class="container">
+        <div id="map"></div>
+   
+      
+      
+      </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      console.log("script entered : "); 
+          var x=[],y=[];
+         
+          
+            var map = L.map('map').setView([15.896, 80.463], 10);
+           
+           L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+            
+            
+     map.pm.addControls({
+    position: 'topleft',
+    drawCircle: false,
+    drawMarker: false,
+    drawCircleMarker:false,
+    drawPolyline:false,
+    drawPolygon:false,
+    editMode:false,
+    dragMode:false
+    
+  });
+  var x=[];
+  var y=[];
+  var x1=[];
+  var y1=[];
+  
+  function makePopupContent(feature){
+  
+    x=feature.geometry.coordinates[0][0];
+  
+    pp='<h5> coordinates selected: </h5><br>';
+  
+   
+  
+    y=feature.geometry.coordinates[0][2];
+    x1.push(x);
+    y1.push(y);
+    var content = x [0];
+  
+   document.getElementById("disabledTextInput").value=x;
+   document.getElementById("disabledText").value=y;
+  
+    return `
+      ${feature.geometry.coordinates}   
+    `;
+  }
+  function setPupup(layer) {
+    var feature = layer.toGeoJSON();
+    var coords = makePopupContent(feature);
+    layer.bindPopup(coords);
+  }
+  
+  map.on('pm:create', function(e) {
+    var layer = e.layer;
+    setPupup(layer);
+    layer.on('pm:update', function(e) {
+      setPupup(e.layer);
+    });
+  
+  });
+  
+  
+  
+  var t_a;
+  
+  $(document).ready(function() {
+     $('#myForm').submit(function(event) {
+      event.preventDefault(); 
+        var loadingSpinner = document.querySelector('.loading-spinner');
+        loadingSpinner.style.display = 'block';
+         $.ajax({
+        url: '/form',
+        type: 'POST',
+        data: {
+          'start-date': $('#start-date').val(),
+          'end-date': $("#end-date").val(),
+          'option':$('#option').val(),
+          'x':JSON.stringify(x1),
+          'y':JSON.stringify(y1)
+        },
+        success: function(response) {
+        
+          
+          loadingSpinner.style.display = 'none';
+         
+        var base64Array=response.pl_a;
+        var container = document.getElementById("imageContainer");
+        var container1= document.getElementById("imageContainer1");
+        var container3=document.getElementById('last_two');
+
+
+        container.innerHTML = "";
+        container1.innerHTML = "";
+        container3.innerHTML="";
+        var base64Array1=response.ml_a;
+      
+        var ido=document.getElementById('option').value;
+        if(ido=='FOREST AREA' || ido=='ML PREDICTION'){
+          for(var i=0;i<base64Array1.length;i++){
+          var decs=atob(base64Array[i]);
+          var img=document.createElement('img');
+          img.src='data:image/png;base64,'+base64Array1[i];
+          img.id='first_i'
+          // var container=document.getElementById("imageContainer");
+          container3.appendChild(img);
+          ;
+
+
+        }
+
+        }
+        else{
+          for(var i=0;i<base64Array.length;i++){
+          var decs=atob(base64Array[i]);
+          var img=document.createElement('img');
+          img.src='data:image/png;base64,'+base64Array[i];
+          img.id='first_i'
+          // var container=document.getElementById("imageContainer");
+          container.appendChild(img);
+          var img1=document.createElement('img');
+          img1.src='data:image/png;base64,'+base64Array1[i];
+          img1.id='second_i';
+          // var container=document.getElementById("imageContainer");
+          container1.appendChild(img1);
+
+
+        }
+        }
+        t_a=response.totala;
+        
+        },
+        error: function(error) {
+             console.log("this the main error buddy in the mean of whole website ");
+     
+        }
+      });
+    });
+  });
+  
+  var ba=''
+  function writein(){
+    console.log(t_a);
+    t_a=t_a.toString()
+    ba+='total area : '+String(t_a);
+    console.log(ba);
+    document.getElementById('info').innerHTML=ba;
+  
+  }
+  
+  
+  </script>
+  
+    
+  
+    <div class="col-md-6">
+      <div class="container">
+        
+        <form id ='myForm' action="/form" method="POST">
+          <div class="form-group">
+            <label for="start-date">From</label>
+            <input type="date" class="form-control" id="start-date" name="start-date" required value="10-01-2022">
+          </div>
+          <div class="form-group">
+            <label for="end-date">To</label>
+            <input type="date" class="form-control" id="end-date" name="end-date" required value="10-02-2023">
+          </div>
+          
+          <div class="form-group">
+              <label for="dropdown">Analysis:</label>
+              <select class="form-control" id="option" name="option"required>
+              <option value="">--Select--</option>
+              <option >NDVI</option>
+              <option >NDWI</option>
+              
+              <option>ML PREDICTION</option>
+              </select>
+          </div>
+          <h4>Co-ordinates Selected</h4>
+          <div class="form-group ">
+            <label for="disabledText">Co-ordinates of first point</label>
+            <input type="text" id="disabledTextInput" name="disabledTextInput" class="form-control" placeholder="disabled Input"required>
+          </div>
+          <div class="form-group">
+            <label for="disabledText">Co-ordinates of third point</label>
+            <input type="text" id="disabledText" name="disabledText" class="form-control" placeholder="disabled Input"required>
+            
+          </div>
+          <button type="submit" class="btn btn-primary d-flex justify-content-center align-items-center" > Analyze </button>
+          
+        </form>     
+        <!-- <div class="btn btn-primary" onclick="writein()">analysis</div> -->
+        <div class="d-flex justify-content-center align-items-center mt-4">
+          <div class="loading-spinner">
+            <div class="spinner-border text-success" role="status">
+              <span class="visually-hidden">Loading.....</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  </div>
+
+  <div style="text-align: center;">
+  <p id="info">
+    
+  </p></div>
+  <div class="row">
+  <div class="col-md-6">
+  <div class="container " id="imageContainer">
+
+  </div>
+</div>
+<div class="col-md-6">
+  <div class="visually-hidden"  id="imageContainer1">
+
+  </div>
+</div>
+  </div>
+  <div class="container " id="last_two">
+
+  </div>
+  {% endblock body %}
